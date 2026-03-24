@@ -1,9 +1,30 @@
-# Eddy Duo — Development Overview
+# Eddy Duo in This Fork
 
-## What is the Eddy Duo?
+This document explains what this fork adds on top of the original BIGTREETECH Eddy repository,
+what remains upstream behavior, and the exact steps to run Eddy Duo reliably.
 
-The BTT Eddy Duo uses the same RP2040 MCU and LDC1612 inductance-to-digital converter as the standard
-Eddy USB, but exposes **both channels** (CH0 and CH1) of the LDC1612 to two independent coils.
+## Scope and Ownership
+
+### Upstream (BIGTREETECH)
+
+- Hardware design and baseline Eddy documentation
+- Original sample configs and general calibration procedure
+- Main README at repository root
+
+### This fork (Eddy-Duo-Modernization)
+
+- Dedicated Duo-focused scripts in duo/scripts:
+  - setup-eddy-dev.sh
+  - build-eddy-firmware.sh
+  - flash-eddy-uf2.sh
+- Reliable RP2040 build profile captured in duo/scripts/eddy-kconfig
+- Remote BOOTSEL flash path (software request first, manual fallback)
+- Duo sample configs:
+  - duo/sample-eddy-duo.cfg
+  - duo/sample-eddy-duo-homing.cfg
+- This focused operations guide
+
+## Hardware and Firmware Facts
 
 | Feature | Eddy USB | Eddy Duo |
 | --- | --- | --- |
@@ -11,12 +32,10 @@ Eddy USB, but exposes **both channels** (CH0 and CH1) of the LDC1612 to two inde
 | LDC1612 channels used | CH0 only | CH0 + CH1 |
 | Coils | 1 | 2 |
 | Temperature sensor | GPIO26 (NTC 3950) | GPIO26 (NTC 3950) |
-| Flash chip | GENERIC_03H CLKDIV 4 | GENERIC_03H CLKDIV 4 |
-| Bootloader | None | None |
+| Required flash chip profile | GENERIC_03H CLKDIV 4 | GENERIC_03H CLKDIV 4 |
+| Bootloader offset | No bootloader | No bootloader |
 
-## Firmware Build Parameters (menuconfig)
-
-These are the exact Klipper `make menuconfig` settings required:
+Required Klipper menuconfig values:
 
 ```text
 Micro-controller Architecture:  Raspberry Pi RP2040
@@ -24,80 +43,98 @@ Bootloader offset:              No bootloader
 Flash chip:                     GENERIC_03H with CLKDIV of 4
 ```
 
-> [!WARNING]
-> Using the wrong flash chip setting (default CLKDIV 2 or wrong chip) will result in unreliable
-> USB enumeration on power-up. The probe will occasionally fail to start. Always use CLKDIV 4.
+WARNING: Using the wrong flash-chip profile can compile successfully but produce intermittent
+USB startup failures after reboot or power cycle.
 
-## Key Source Files in Klipper
+## Quick Start for Eddy Duo
 
-These are the files relevant to the Duo that live in the Klipper source tree (`~/klipper`):
+Run these steps on the Raspberry Pi host.
 
-| File | Role |
-| --- | --- |
-| `src/rp2040/main.c` | RP2040 MCU entry point |
-| `src/rp2040/usbserial.c` | USB CDC serial implementation |
-| `src/generic/i2c.c` | Generic I2C layer |
-| `src/ldc1612.c` | LDC1612 driver (MCU side) |
-| `klippy/extras/probe_eddy_current.py` | Klipper host-side eddy probe logic |
-| `klippy/extras/ldc1612.py` | Host-side LDC1612 register abstraction |
+1. One-time environment setup:
 
-## Duo-Specific Changes Required in Klipper
+```bash
+bash ~/eddy-duo/scripts/setup-eddy-dev.sh
+```
 
-### 1. `src/ldc1612.c` — Enable both channels
+1. Build firmware with validated settings:
 
-The current MCU driver initializes LDC1612 in **single-channel mode** (CH0 only).
-For the Duo, both channels must be initialized and sampled.
+```bash
+bash ~/eddy-duo/scripts/build-eddy-firmware.sh
+```
 
-Key registers to configure for both channels:
+1. Flash firmware (remote BOOTSEL path):
 
-- `LDC1612_CH0_RCOUNT` / `LDC1612_CH1_RCOUNT` — conversion reference count
-- `LDC1612_CH0_OFFSET` / `LDC1612_CH1_OFFSET` — channel offset
-- `LDC1612_CH0_CONFIG` / `LDC1612_CH1_CONFIG` — channel drive current
-- `LDC1612_MUX_CONFIG` — multiplexer: must select BOTH channels (not single-channel autoscan)
-- `LDC1612_CONFIG` — must enable SLEEP_MODE=0 and AUTOSCAN on both channels
+```bash
+bash ~/eddy-duo/scripts/flash-eddy-uf2.sh
+```
 
-### 2. `klippy/extras/probe_eddy_current.py` — Dual-channel support
+1. If the probe is hung and cannot accept software BOOTSEL:
 
-The host-side Python needs to:
+```bash
+bash ~/eddy-duo/scripts/flash-eddy-uf2.sh --manual
+```
 
-- Accept a second channel's readings
-- Either average CH0 + CH1 for improved noise rejection, or expose them independently
-- Handle two independent Z-offset calibrations if the two coils are at different heights
+1. Apply one Duo sample config:
 
-### 3. Configuration
+- Use duo/sample-eddy-duo.cfg for probe-only mode
+- Use duo/sample-eddy-duo-homing.cfg for probe plus Z homing
 
-The Duo needs either:
+1. Update machine-specific values in your printer config:
 
-- A new `[probe_eddy_duo]` section type, OR
-- Two `[probe_eddy_current]` sections with `i2c_address` set to the two channel addresses
+- mcu serial path
+- x_offset and y_offset
+- mesh_min and mesh_max
+- home_xy_position (for homing variant)
 
-## Development Workflow
+1. Re-run the normal Eddy calibration sequence:
 
-See [../scripts/README-scripts.md](../scripts/README-scripts.md) for the full
-build → flash → test workflow that runs entirely on the Raspberry Pi.
+- LDC_CALIBRATE_DRIVE_CURRENT
+- PROBE_EDDY_CURRENT_CALIBRATE_AUTO (or manual equivalent)
+- BED_MESH_CALIBRATE
+- TEMPERATURE_PROBE_CALIBRATE (USB workflows when needed)
 
-For RP2040 firmware updates, the preferred path is now a software bootloader
-request over the existing USB serial link followed by `picotool` flashing.
-That avoids opening the toolhead just to press BOOTSEL. Manual BOOTSEL entry is
-still the fallback if the MCU is already hung and not responding on USB.
+## What Changed Versus Original Flash Flow
 
-## Known Issues / Drift from Upstream
+Original root README flow uses manual BOOTSEL press and make flash.
 
-1. **USB enumeration** — intermittent failure to enumerate on cold boot is caused by wrong
-   flash clock divider. Confirmed fix: `GENERIC_03H CLKDIV 4`.
+This fork adds a safer operator flow:
 
-2. **ADC sampling rate** — the LDC1612 reference count (`RCOUNT`) controls sampling time.
-   The current Klipper mainline value may not be optimal for the Duo's coil geometry.
-   Target: stable readings at ≥ 250 Hz per channel.
+1. request bootloader over live USB serial
+2. flash with picotool
+3. verify Eddy re-enumeration
+4. restart Klipper
 
-3. **Coil timing** — single-channel mode uses continuous conversion. Dual-channel autoscan
-   introduces a small dead time between CH0 and CH1 samples. This must be accounted for
-   in the bed mesh interpolation logic.
+Manual BOOTSEL is still supported via --manual for recovery scenarios.
 
-4. **Python venv** — Klipper must run in a Python 3 virtualenv. Python 2 venvs will fail
-   with `split() takes no keyword arguments`. Use KIAUH to rebuild if needed.
+## Current Limitations and Important Notes
 
-5. **MCU disconnect behavior** — upstream Klipper treats loss of communication
-   with any configured MCU as a printer shutdown condition. An Eddy USB that
-   disappears mid-print will currently stop the print even if the probe is not
-   actively being used.
+1. Upstream Klipper currently treats loss of any configured MCU as a shutdown event.
+   If Eddy disconnects mid-print, the print can stop.
+
+2. True dual-channel behavior in mainline may still require deeper LDC1612 path changes,
+   depending on your intended averaging/synchronization model.
+
+3. Keep Klipper itself on mainline in ~/klipper. This fork does not vendor Klipper source.
+
+## Updating After Future Klipper Releases
+
+Typical upgrade cycle:
+
+```bash
+cd ~/klipper
+git pull
+bash ~/eddy-duo/scripts/build-eddy-firmware.sh
+bash ~/eddy-duo/scripts/flash-eddy-uf2.sh
+```
+
+If Klipper changes config symbols or Eddy probe config syntax, build-time verification and
+runtime config errors should surface quickly.
+
+## Key Files in This Fork
+
+- duo/scripts/setup-eddy-dev.sh
+- duo/scripts/build-eddy-firmware.sh
+- duo/scripts/flash-eddy-uf2.sh
+- duo/scripts/eddy-kconfig
+- duo/sample-eddy-duo.cfg
+- duo/sample-eddy-duo-homing.cfg

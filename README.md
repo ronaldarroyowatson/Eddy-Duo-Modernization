@@ -1,7 +1,14 @@
+<!-- markdownlint-disable MD009 MD025 MD028 MD029 MD040 MD051 MD059 -->
+
 # Installation Guide For EDDY USB And Eddy Coil
 
 > [!IMPORTANT]
 > It is no longer necessary to use the BIGTREETECH fork when using the Eddy. You can now run mainline klipper. The guide that follows assumes that you are running mainline klipper. If you are migrating from the BIGTREETECH fork back to mainline then we suggest erasing all of the configuration and calibration data in your config file (including that within the auto save section) and performing the calibration again while using our latest configuration files.
+
+> [!NOTE]
+> This repository includes fork-specific Eddy Duo modernization tooling under the duo folder.
+> For the Duo workflow (scripted setup, validated build profile, remote BOOTSEL flash, and
+> Duo sample configs), use duo/README-duo.md.
 
 # Index
 
@@ -253,7 +260,7 @@ surface deviation or beds with extreme tilt that hasn't been corrected.
 
 When performing a rapid bed mesh scan there is little time to accumulate many samples per point so that they can be averaged and have noise removed. Therefore a rapid scan may not be as accurate as a standard bed mesh scan but in most cases it will still produce a fine first layer.
 
-Rapid scans can be improved by allowing the travel planner to slightly overshoot the scanned bed mesh and smooth the moves. You can configure this overshoot in the bed_mesh configuration section using the `scan_overshoot: ` parameter. Note that you will need to ensure that the axis can travel to the mesh boundary plus this overshoot value on your printer so be careful not to specify a value that is too high. Usually 8mm is plenty.
+Rapid scans can be improved by allowing the travel planner to slightly overshoot the scanned bed mesh and smooth the moves. You can configure this overshoot in the bed_mesh configuration section using the `scan_overshoot:` parameter. Note that you will need to ensure that the axis can travel to the mesh boundary plus this overshoot value on your printer so be careful not to specify a value that is too high. Usually 8mm is plenty.
 
 # FAQ - Frequently Asked Questions
 
