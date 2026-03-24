@@ -1,0 +1,39 @@
+#
+# Klipper firmware config for BTT Eddy / Eddy Duo
+# MCU: RP2040
+# Bootloader: None (direct UF2 flash via BOOTSEL button, or picotool)
+# Flash chip: GENERIC_03H with CLKDIV 4
+# Communication: USB Serial
+#
+# Generated for: Eddy-Duo-Modernization project
+# Apply with: scripts/build-eddy-firmware.sh
+#
+
+CONFIG_LOW_LEVEL_OPTIONS=y
+CONFIG_MACH_RPXXXX=y
+CONFIG_MACH_RP2040=y
+# CONFIG_MACH_RP2350 is not set
+CONFIG_MCU="rp2040"
+CONFIG_CLOCK_FREQ=12000000
+
+# Bootloader: "No bootloader" for RP2040
+# This selects RPXXXX_FLASH_START_0100 which uses the stage2 loader at 0x100
+# Application starts at 0x10000100 (right after the 256-byte stage2 header)
+# CONFIG_RPXXXX_FLASH_START_4000 is not set  <- this was the WRONG setting
+CONFIG_RPXXXX_FLASH_START_0100=y
+CONFIG_RP2040_HAVE_STAGE2=y
+# CONFIG_RPXXXX_HAVE_BOOTLOADER is not set
+
+# Flash chip: GENERIC_03H with CLKDIV 4  <- THE CRITICAL FIX
+# The W25Q080 / CLKDIV 2 setting causes intermittent USB enumeration failure
+# CONFIG_RP2040_FLASH_W25Q080 is not set
+CONFIG_RP2040_FLASH_GENERIC_03=y
+CONFIG_RP2040_STAGE2_FILE="boot2_generic_03h.S"
+CONFIG_RP2040_STAGE2_CLKDIV=4
+
+# Communication: USB Serial
+CONFIG_RPXXXX_USB=y
+CONFIG_USBSERIAL=y
+# CONFIG_RPXXXX_SERIAL_UART0_PINS_0_1 is not set
+# CONFIG_RPXXXX_CANBUS is not set
+# CONFIG_RPXXXX_USBCANBUS is not set

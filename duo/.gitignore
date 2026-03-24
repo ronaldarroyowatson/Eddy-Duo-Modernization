@@ -1,0 +1,10 @@
+# Firmware build archives live on the Pi, not in the repo
+firmware-builds/
+
+# Klipper config backups created by build-eddy-firmware.sh
+*.config.bak.*
+
+# Editor / OS artefacts
+.DS_Store
+*.swp
+*~
