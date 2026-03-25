@@ -93,6 +93,29 @@ bash ~/eddy-duo/scripts/flash-eddy-uf2.sh --manual
 - BED_MESH_CALIBRATE
 - TEMPERATURE_PROBE_CALIBRATE (USB workflows when needed)
 
+## USB Stability Hardening (Recommended)
+
+If you see intermittent "Lost communication with MCU" during homing, QGL, or probing,
+apply host-side USB hardening on the Pi:
+
+```bash
+bash ~/eddy-duo/scripts/harden-eddy-usb.sh
+```
+
+This script does three things:
+
+1. sets `usbcore.autosuspend=-1` in kernel cmdline
+2. installs a udev rule to force `power/control=on` for RP2040 USB devices (VID 2e8a)
+3. reloads and applies udev rules immediately
+
+After running it, reboot once if prompted.
+
+Important cable note:
+
+- Keeping the cable mechanically fixed is good.
+- Bundling Eddy USB in the same zip-tie path as stepper/heater/fan power wiring can still inject noise.
+- Prefer physical separation from noisy motor/heater runs, plus a short shielded cable (ferrite helps).
+
 ## What Changed Versus Original Flash Flow
 
 Original root README flow uses manual BOOTSEL press and make flash.
@@ -135,6 +158,7 @@ runtime config errors should surface quickly.
 - duo/scripts/setup-eddy-dev.sh
 - duo/scripts/build-eddy-firmware.sh
 - duo/scripts/flash-eddy-uf2.sh
+- duo/scripts/harden-eddy-usb.sh
 - duo/scripts/eddy-kconfig
 - duo/sample-eddy-duo.cfg
 - duo/sample-eddy-duo-homing.cfg
