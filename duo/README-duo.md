@@ -116,6 +116,28 @@ Important cable note:
 - Bundling Eddy USB in the same zip-tie path as stepper/heater/fan power wiring can still inject noise.
 - Prefer physical separation from noisy motor/heater runs, plus a short shielded cable (ferrite helps).
 
+## If Disconnects Continue: Collect Diagnostics
+
+After a failure (for example during homing or QGL), run:
+
+```bash
+bash ~/eddy-duo/scripts/collect-eddy-diagnostics.sh
+```
+
+This creates a timestamped bundle in:
+
+```text
+~/eddy-duo/diagnostics/eddy-diagnostics-YYYYMMDD_HHMMSS/
+```
+
+It captures:
+
+- Klipper error excerpts from current and previous logs
+- recent kernel USB events
+- klipper service logs
+- serial/tty device state, `lsusb`, and USB tree
+- kernel cmdline and active udev power rule
+
 ## What Changed Versus Original Flash Flow
 
 Original root README flow uses manual BOOTSEL press and make flash.
@@ -159,6 +181,7 @@ runtime config errors should surface quickly.
 - duo/scripts/build-eddy-firmware.sh
 - duo/scripts/flash-eddy-uf2.sh
 - duo/scripts/harden-eddy-usb.sh
+- duo/scripts/collect-eddy-diagnostics.sh
 - duo/scripts/eddy-kconfig
 - duo/sample-eddy-duo.cfg
 - duo/sample-eddy-duo-homing.cfg
