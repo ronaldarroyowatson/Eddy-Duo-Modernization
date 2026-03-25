@@ -105,7 +105,7 @@ bash ~/eddy-duo/scripts/harden-eddy-usb.sh
 This script does three things:
 
 1. sets `usbcore.autosuspend=-1` in kernel cmdline
-2. installs a udev rule to force `power/control=on` for RP2040 USB devices (VID 2e8a)
+2. installs a udev rule to force `power/control=on` for Klipper USB MCUs (`1d50:614e`) and RP2040 bootloader devices (`2e8a:*`)
 3. reloads and applies udev rules immediately
 
 After running it, reboot once if prompted.

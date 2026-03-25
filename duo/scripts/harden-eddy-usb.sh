@@ -65,7 +65,10 @@ update_cmdline() {
 install_udev_rule() {
     hdr "Udev power rule"
     sudo tee "${UDEV_RULE_FILE}" >/dev/null <<'EOF'
-# Keep RP2040 USB devices in full-power mode (no autosuspend)
+# Keep active Klipper USB MCUs and RP2040 bootloader devices in full-power mode
+# Klipper USB MCUs usually enumerate as 1d50:614e (OpenMoko VID).
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="1d50", ATTR{idProduct}=="614e", TEST=="power/control", ATTR{power/control}="on"
+# RP2040 BOOTSEL mode (UF2/bootrom) usually enumerates as 2e8a:*.
 ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="2e8a", TEST=="power/control", ATTR{power/control}="on"
 EOF
     ok "Installed ${UDEV_RULE_FILE}"
