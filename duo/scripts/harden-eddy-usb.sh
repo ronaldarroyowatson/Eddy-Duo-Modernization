@@ -19,6 +19,7 @@ set -euo pipefail
 readonly CMDLINE_FILE="/boot/firmware/cmdline.txt"
 readonly UDEV_RULE_FILE="/etc/udev/rules.d/99-eddy-usb-power.rules"
 readonly AUTOSUSPEND_ARG="usbcore.autosuspend=-1"
+readonly QUIRK_ARG="usbcore.quirks=1d50:614e:k"
 
 if [ -t 1 ] && tput setaf 1 >/dev/null 2>&1; then
     RED="$(tput setaf 1)"
@@ -50,16 +51,25 @@ update_cmdline() {
 
     local current
     current="$(sudo cat "${CMDLINE_FILE}")"
-    if printf '%s' "${current}" | grep -q "${AUTOSUSPEND_ARG}"; then
+    local updated="${current}"
+
+    if printf '%s' "${updated}" | grep -q "${AUTOSUSPEND_ARG}"; then
         ok "${AUTOSUSPEND_ARG} already present"
-        return 0
+    else
+        updated="${updated} ${AUTOSUSPEND_ARG}"
+        ok "Will add ${AUTOSUSPEND_ARG}"
+        REBOOT_REQUIRED=1
     fi
 
-    local updated
-    updated="${current} ${AUTOSUSPEND_ARG}"
+    if printf '%s' "${updated}" | grep -q "${QUIRK_ARG}"; then
+        ok "${QUIRK_ARG} already present"
+    else
+        updated="${updated} ${QUIRK_ARG}"
+        ok "Will add ${QUIRK_ARG}"
+        REBOOT_REQUIRED=1
+    fi
+
     printf '%s\n' "${updated}" | sudo tee "${CMDLINE_FILE}" >/dev/null
-    ok "Added ${AUTOSUSPEND_ARG} to ${CMDLINE_FILE}"
-    REBOOT_REQUIRED=1
 }
 
 install_udev_rule() {
