@@ -93,6 +93,29 @@ bash ~/eddy-duo/scripts/flash-eddy-uf2.sh --manual
 - BED_MESH_CALIBRATE
 - TEMPERATURE_PROBE_CALIBRATE (USB workflows when needed)
 
+## One-Line Restore After Pi Reinstall
+
+From Windows (same machine that has both repos), run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\duo\scripts\restore-eddy-duo.ps1
+```
+
+What it restores automatically:
+
+1. copies all `duo/scripts` tools to `~/eddy-duo/scripts`
+2. copies all `*.cfg` from your Voron config repo to `~/printer_data/config`
+3. runs setup (`setup-eddy-dev.sh`)
+4. reapplies USB hardening (`harden-eddy-usb.sh`)
+5. reboots Pi and verifies Klipper is active
+
+Optional flags:
+
+- `-SkipSetup`
+- `-SkipHardening`
+- `-SkipReboot`
+- `-VoronConfigRepoPath "C:\path\to\voron-config-repo"`
+
 ## USB Stability Hardening (Recommended)
 
 If you see intermittent "Lost communication with MCU" during homing, QGL, or probing,
