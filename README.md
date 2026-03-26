@@ -31,7 +31,7 @@
 - - [Eddy is performing Z Hops when running Bed Mesh](#eddy-is-performing-z-hops-when-running-bed-mesh)
 - - [Which Eddy version should I use?](#which-eddy-version-should-i-use)
 - - [Error: gcode command < ANY GCODE COMMAND > already registered](#error-gcode-command--any-gcode-command--already-registered)
-- - [My z-offset doesnt seem to save and resets, is there a work around or fix?](#my-z-offset-doesnt-seem-to-save-and-resets-is-there-a-work-around-or-fix)
+- - [My descend-z doesnt seem to save and resets, is there a work around or fix?](#my-descend-z-doesnt-seem-to-save-and-resets-is-there-a-work-around-or-fix)
 - - [My Eddy Macros Conflict With My KNOMI Macros](#my-eddy-macros-conflict-with-my-knomi-macros)
 - - [KAMP And Eddy](#kamp-and-eddy)
 
@@ -122,7 +122,7 @@ make menuconfig
 
 - You wish to use the Eddy as a probe but will use another device as the z-endstop - [Use this config with no homing](sample-bigtreetech-eddy.cfg)
 - You wish to use the Eddy as a probe AND as the z-endstop - [Use this config which includes homing](sample-bigtreetech-eddy-homing.cfg)
-- You wish to use the Eddy as a probe AND as the z-endstop and would like to use the beta z-offset functionality - [Use this config which includes homing and z-offset](sample-bigtreetech-eddy-zoffbeta.cfg)
+- You wish to use the Eddy as a probe AND as the z-endstop and would like to use the beta descend-z functionality - [Use this config which includes homing and descend-z](sample-bigtreetech-eddy-zoffbeta.cfg)
 
 Whichever config you select, copy the entire contents into your printer.cfg file.
 
@@ -159,7 +159,7 @@ With the firmware and configuration done, you are now ready to begin the probe c
 Now that the drive current has been calibrated, the Eddy will be able to obtain readings from the print bed. Klipper needs to know how those readings correspond to the height of the nozzle. The following calibration procedure positions the nozzle on the bed so that the z height is = 0. It then takes readings from the Eddy as it gradually increases the nozzle height so that it can map those readings to known heights. Follow the steps below to perform this essential calibration.
 
 > [!TIP]
-> If you ever find that the nozzle is sitting either too high or too low when it is supposed to be at z=0 then performing this quick calibration again will likely solve your issue. There is no need to set a z-offset. Movement of the probe relative to the nozzle through maintenance may result in the need for this calibration.
+> If you ever find that the nozzle is sitting either too high or too low when it is supposed to be at z=0 then performing this quick calibration again will likely solve your issue. There is no need to set a descend-z. Movement of the probe relative to the nozzle through maintenance may result in the need for this calibration.
 
 > [!TIP]
 > Choose your own adventure!
@@ -221,14 +221,14 @@ Now that the drive current has been calibrated, the Eddy will be able to obtain 
 
 # Extra Info
 
-## Z-Offset
+## Descend-Z
 
 > [!TIP]
 > This section only applies to those who are using the Eddy for homing.
 
-The Eddy should not need the use of a z-offset since it is calibrated to understand where `z=0` is. Nevertheless, if you would like to use a z-offset then you should use the [sample config file that includes z-offset functionality.](sample-bigtreetech-eddy-zoffbeta.cfg)
+The Eddy should not need the use of a descend-z since it is calibrated to understand where `z=0` is. Nevertheless, if you would like to use a descend-z then you should use the [sample config file that includes descend-z functionality.](sample-bigtreetech-eddy-zoffbeta.cfg)
 
-To determine the correct Z-offset, follow the steps below.
+To determine the correct Descend-Z value, follow the steps below.
 
 - Home your printer.
 - Place a piece of paper beneath the nozzle.
@@ -292,10 +292,10 @@ Rapid scans can be improved by allowing the travel planner to slightly overshoot
 
 - This will happen when you have conflicting gcode macros. Check all of your gcode macros for ones that share the same name and arbitrate the conflicts. Generally, you should select the functionality from the Eddy macros if there is a conflict and you are not sure what to do.
 
-## My z-offset doesnt seem to save and resets, is there a work around or fix?
+## My descend-z doesnt seem to save and resets, is there a work around or fix?
 
-- Coming from a standard probe, this may seem like a bug. However if you have calibrated the Eddy correctly and are using the special homing macros, then there will be no need for a z-offset. Explaining why is a bit long winded but essentially when it comes to an Eddy, the z-offset parameter does not adjust the height at which the nozzle prints, it just adjusts the height at which homing or probing triggers. If you have a mind that enjoys understanding things at a deeper level then here is a writeup to give you something to chew on: [Z-Offsets with Eddy Current Probes](https://gist.github.com/bigtreetech/484380b26be613b9139bc537510393df)
-- While we strongly recommend simply performing the Eddy probe calibration in order to get a nozzle height that is just right, you can still simulate a standard z-offset by using the [Z-offset beta sample configuration file](sample-bigtreetech-eddy-zoffbeta.cfg). Simply uncomment any macro that is related to the beta z-offset functionality and you will be able to use the standard mainsail buttons to raise/lower then nozzle and save that height as a z-offset.
+- Coming from a standard probe, this may seem like a bug. However if you have calibrated the Eddy correctly and are using the special homing macros, then there will be no need for a descend-z. Explaining why is a bit long winded but essentially when it comes to an Eddy, the `descend_z` setting does not adjust the height at which the nozzle prints, it just adjusts the height at which homing or probing triggers. If you have a mind that enjoys understanding things at a deeper level then here is a writeup to give you something to chew on: [Z-Offsets with Eddy Current Probes](https://gist.github.com/bigtreetech/484380b26be613b9139bc537510393df)
+- While we strongly recommend simply performing the Eddy probe calibration in order to get a nozzle height that is just right, you can still simulate a standard descend-z by using the [descend-z beta sample configuration file](sample-bigtreetech-eddy-zoffbeta.cfg). Simply uncomment any macro that is related to the beta descend-z functionality and you will be able to use the standard mainsail buttons to raise/lower then nozzle and save that height as a descend-z.
 
 ## My Eddy Macros Conflict With My KNOMI Macros
 
@@ -308,3 +308,16 @@ Rapid scans can be improved by allowing the travel planner to slightly overshoot
 > [KAMP aka Klipper-Adaptive-Meshing-Purging](https://github.com/kyleisah/Klipper-Adaptive-Meshing-Purging) should be removed from your klipper prior to using Eddy. Please comment out the include line. ie `#[include ./KAMP/adaptive_meshing.cfg]` from your KAMP_SETTINGS.cfg
 >
 > Instead KAMP has been integrated into klipper as of January 2024 and you should use the ADAPTIVE=1 option in your BED_MESH_CALIBRATION calls. You can find more [Information on Adaptive Mesh Here](https://www.klipper3d.org/Bed_Mesh.html#adaptive-meshes)
+
+## Maintainer Note
+
+The terminology migration from `z_offset` to `descend_z` is intentionally not 100% exhaustive. The remaining `z offset` strings in this repo are currently limited to the items below.
+
+- `Z_OFFSET_APPLY_PROBE` and `Z_OFFSET_APPLY_PROBE_ORIG` remain unchanged in [sample-bigtreetech-eddy.cfg](sample-bigtreetech-eddy.cfg), [sample-bigtreetech-eddy-homing.cfg](sample-bigtreetech-eddy-homing.cfg), and [sample-bigtreetech-eddy-zoffbeta.cfg](sample-bigtreetech-eddy-zoffbeta.cfg). These are macro identifiers, not user-facing config keys. They were left in place to avoid silently breaking existing macro callers or UI integrations. If they ever need to be renamed, search for both identifiers and update declarations plus every caller in one change.
+- The linked article title `Z-Offsets with Eddy Current Probes` is external content and was left as-is because it is the upstream document title.
+
+If future work needs to finish the rename, start with this search:
+
+```text
+Z_OFFSET_APPLY_PROBE|Z_OFFSET_APPLY_PROBE_ORIG|Z-Offsets with Eddy Current Probes
+```
