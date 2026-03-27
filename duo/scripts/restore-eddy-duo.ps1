@@ -42,7 +42,7 @@ Test-PathOrThrow -PathToCheck $VoronConfigRepoPath -Label "Voron config repo"
 
 Invoke-External -Exe $plink -Arguments @(
     "-i", $KeyPath, "-batch", $PiHost,
-    "mkdir -p ~/eddy-duo/scripts ~/eddy-duo/firmware-builds ~/eddy-duo/diagnostics ~/printer_data/config"
+    "mkdir -p ~/eddy-duo/scripts ~/eddy-duo/firmware-builds ~/eddy-duo/diagnostics ~/printer_data/config; if [ -f ~/printer_data/config/printer.cfg ]; then cp ~/printer_data/config/printer.cfg /tmp/printer.cfg.pre-restore; fi"
 ) -Label "Prepare remote directories"
 
 Invoke-External -Exe $pscp -Arguments @(
@@ -57,7 +57,7 @@ Invoke-External -Exe $pscp -Arguments @(
 
 Invoke-External -Exe $plink -Arguments @(
     "-i", $KeyPath, "-batch", $PiHost,
-    "chmod +x ~/eddy-duo/scripts/*.sh; rm -f ~/printer_data/config/_remote_printer.cfg"
+    "chmod +x ~/eddy-duo/scripts/*.sh; rm -f ~/printer_data/config/_remote_printer.cfg; if [ -f /tmp/printer.cfg.pre-restore ] && grep -q '^#\\*# <---------------------- SAVE_CONFIG ---------------------->' /tmp/printer.cfg.pre-restore; then awk '/^#\\*# <---------------------- SAVE_CONFIG ---------------------->/{exit} {print}' ~/printer_data/config/printer.cfg > /tmp/printer.cfg.base; awk 'f{print} /^#\\*# <---------------------- SAVE_CONFIG ---------------------->/{f=1; print}' /tmp/printer.cfg.pre-restore > /tmp/printer.cfg.saveblock; cat /tmp/printer.cfg.base /tmp/printer.cfg.saveblock > ~/printer_data/config/printer.cfg; fi"
 ) -Label "Set script permissions and clean extra config"
 
 if (-not $SkipSetup) {
@@ -101,9 +101,19 @@ if (-not $SkipReboot) {
         "cat /proc/cmdline; echo ---; systemctl is-active klipper"
     ) -Label "Verify cmdline hardening and Klipper service"
 
+    $remotePrinterRecoverCmd = @'
+info=$(/usr/bin/curl -s http://127.0.0.1:7125/printer/info)
+echo "$info"
+if echo "$info" | grep -q '"state":"shutdown"'; then
+  /usr/bin/curl -s -X POST "http://127.0.0.1:7125/printer/gcode/script?script=FIRMWARE_RESTART"
+  sleep 3
+  /usr/bin/curl -s http://127.0.0.1:7125/printer/info
+fi
+'@
+
     Invoke-External -Exe $plink -Arguments @(
         "-i", $KeyPath, "-batch", $PiHost,
-        "info=$(curl -s http://127.0.0.1:7125/printer/info); echo $info; if echo \"$info\" | grep -q '\"state\":\"shutdown\"'; then curl -s -X POST \"http://127.0.0.1:7125/printer/gcode/script?script=FIRMWARE_RESTART\"; sleep 3; curl -s http://127.0.0.1:7125/printer/info; fi"
+        $remotePrinterRecoverCmd
     ) -Label "Verify printer state and auto-recover shutdown"
 }
 
