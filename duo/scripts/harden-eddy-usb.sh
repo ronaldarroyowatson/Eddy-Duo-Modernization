@@ -4,8 +4,10 @@
 #
 # What this script does:
 #   1. Disables USB autosuspend globally via kernel cmdline
-#   2. Adds a udev rule forcing power/control=on for RP2040 devices (2e8a)
-#   3. Reloads udev rules and applies them to currently connected USB devices
+#   2. Adds a udev rule forcing power/control=on for Klipper USB MCUs (1d50:614e)
+#      and RP2040 bootloader devices (2e8a:*)
+#   3. Disables per-device autosuspend in sysfs where supported
+#   4. Reloads udev rules and applies them to currently connected USB devices
 #
 # Usage:
 #   bash ~/eddy-duo/scripts/harden-eddy-usb.sh
@@ -17,7 +19,7 @@
 set -euo pipefail
 
 readonly CMDLINE_FILE="/boot/firmware/cmdline.txt"
-readonly UDEV_RULE_FILE="/etc/udev/rules.d/99-eddy-usb-power.rules"
+readonly UDEV_RULE_FILE="/etc/udev/rules.d/99-klipper-usb-stability.rules"
 readonly AUTOSUSPEND_ARG="usbcore.autosuspend=-1"
 readonly QUIRK_ARG="usbcore.quirks=1d50:614e:k"
 
@@ -75,9 +77,11 @@ update_cmdline() {
 install_udev_rule() {
     hdr "Udev power rule"
     sudo tee "${UDEV_RULE_FILE}" >/dev/null <<'EOF'
-# Keep active Klipper USB MCUs and RP2040 bootloader devices in full-power mode
+# Keep active Klipper USB MCUs and RP2040 bootloader devices in full-power mode.
 # Klipper USB MCUs usually enumerate as 1d50:614e (OpenMoko VID).
 ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="1d50", ATTR{idProduct}=="614e", TEST=="power/control", ATTR{power/control}="on"
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="1d50", ATTR{idProduct}=="614e", TEST=="power/autosuspend", ATTR{power/autosuspend}="-1"
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="1d50", ATTR{idProduct}=="614e", TEST=="power/autosuspend_delay_ms", ATTR{power/autosuspend_delay_ms}="-1"
 # RP2040 BOOTSEL mode (UF2/bootrom) usually enumerates as 2e8a:*.
 ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="2e8a", TEST=="power/control", ATTR{power/control}="on"
 EOF
@@ -89,15 +93,15 @@ EOF
 }
 
 report_connected_devices() {
-    hdr "Connected RP2040 devices"
+    hdr "Connected Klipper USB devices"
     local found=0
     while IFS= read -r line; do
         found=1
         printf '  %s\n' "${line}"
-    done < <(lsusb | grep -i '2e8a' || true)
+    done < <(lsusb | grep -Ei '1d50:614e|2e8a:' || true)
 
     if [ "${found}" -eq 0 ]; then
-        warn "No RP2040 USB devices currently detected (VID 2e8a)."
+        warn "No Klipper/RP2040 USB devices currently detected (VID 1d50 or 2e8a)."
     fi
 }
 

@@ -100,6 +100,11 @@ if (-not $SkipReboot) {
         "-i", $KeyPath, "-batch", $PiHost,
         "cat /proc/cmdline; echo ---; systemctl is-active klipper"
     ) -Label "Verify cmdline hardening and Klipper service"
+
+    Invoke-External -Exe $plink -Arguments @(
+        "-i", $KeyPath, "-batch", $PiHost,
+        "info=$(curl -s http://127.0.0.1:7125/printer/info); echo $info; if echo \"$info\" | grep -q '\"state\":\"shutdown\"'; then curl -s -X POST \"http://127.0.0.1:7125/printer/gcode/script?script=FIRMWARE_RESTART\"; sleep 3; curl -s http://127.0.0.1:7125/printer/info; fi"
+    ) -Label "Verify printer state and auto-recover shutdown"
 }
 
 Write-Host "`nRestore complete."

@@ -29,9 +29,11 @@ run uname uname -a
 run cmdline cat /proc/cmdline
 run lsusb lsusb
 run lsusb_tree lsusb -t
+run throttled sh -c "vcgencmd get_throttled 2>/dev/null || true"
 run serial_by_id ls -l /dev/serial/by-id
 run tty_devices sh -c "ls -l /dev/ttyACM* /dev/ttyUSB* 2>/dev/null || true"
-run udev_rule cat /etc/udev/rules.d/99-eddy-usb-power.rules
+run udev_rule_legacy cat /etc/udev/rules.d/99-eddy-usb-power.rules
+run udev_rule cat /etc/udev/rules.d/99-klipper-usb-stability.rules
 run usb_power sh -c "grep -R . /sys/bus/usb/devices/*/power/control 2>/dev/null | head -n 300"
 
 # Kernel and service logs

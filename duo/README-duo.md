@@ -95,10 +95,16 @@ bash ~/eddy-duo/scripts/flash-eddy-uf2.sh --manual
 
 ## One-Line Restore After Pi Reinstall
 
-From Windows (same machine that has both repos), run:
+If both repos are already present locally, run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\duo\scripts\restore-eddy-duo.ps1
+```
+
+If this is a clean PC/Pi recovery and you want repo sync + restore in one command, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\duo\scripts\bootstrap-voron-rebuild.ps1
 ```
 
 What it restores automatically:
@@ -116,6 +122,12 @@ Optional flags:
 - `-SkipReboot`
 - `-VoronConfigRepoPath "C:\path\to\voron-config-repo"`
 
+Bootstrap-only optional flags:
+
+- `-WorkspaceRoot "C:\Users\<you>\Documents"`
+- `-VoronRepoUrl "https://github.com/<owner>/voron-config-repo.git"`
+- `-EddyRepoUrl "https://github.com/<owner>/Eddy-Duo-Modernization.git"`
+
 ## USB Stability Hardening (Recommended)
 
 If you see intermittent "Lost communication with MCU" during homing, QGL, or probing,
@@ -129,7 +141,9 @@ This script does three things:
 
 1. sets `usbcore.autosuspend=-1` in kernel cmdline
 2. sets `usbcore.quirks=1d50:614e:k` to disable USB Link Power Management for Klipper USB MCUs
-3. installs a udev rule to force `power/control=on` for Klipper USB MCUs (`1d50:614e`) and RP2040 bootloader devices (`2e8a:*`)
+3. installs a udev rule (`/etc/udev/rules.d/99-klipper-usb-stability.rules`) to force:
+  - `power/control=on` for Klipper USB MCUs (`1d50:614e`) and RP2040 BOOTSEL devices (`2e8a:*`)
+  - `power/autosuspend=-1` and `power/autosuspend_delay_ms=-1` for `1d50:614e`
 4. reloads and applies udev rules immediately
 
 After running it, reboot once if prompted.
@@ -139,6 +153,28 @@ Important cable note:
 - Keeping the cable mechanically fixed is good.
 - Bundling Eddy USB in the same zip-tie path as stepper/heater/fan power wiring can still inject noise.
 - Prefer physical separation from noisy motor/heater runs, plus a short shielded cable (ferrite helps).
+
+## Incident Pattern: Lost Communication With MCU 'eddy'
+
+Observed failure signature from field debugging:
+
+1. Klipper shutdown shows `Lost communication with MCU 'eddy'`
+2. Kernel logs show standalone Eddy USB disconnect/re-enumeration (for example `usb 3-1`)
+3. `vcgencmd get_throttled` reports `0x0` (no Pi undervoltage)
+
+This pattern usually indicates link integrity issues on the Eddy USB path (connector strain, cable quality, routing noise), not config syntax or host CPU/power collapse.
+
+Immediate recovery command:
+
+```bash
+curl -s -X POST "http://127.0.0.1:7125/printer/gcode/script?script=FIRMWARE_RESTART"
+```
+
+Then verify:
+
+```bash
+curl -s http://127.0.0.1:7125/printer/info
+```
 
 ## If Disconnects Continue: Collect Diagnostics
 

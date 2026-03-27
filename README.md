@@ -9,6 +9,9 @@
 > This repository includes fork-specific Eddy Duo modernization tooling under the duo folder.
 > For the Duo workflow (scripted setup, validated build profile, remote BOOTSEL flash, and
 > Duo sample configs), use duo/README-duo.md.
+>
+> One-line full recovery after Pi reformat is documented there via:
+> `duo/scripts/bootstrap-voron-rebuild.ps1`
 
 # Index
 
